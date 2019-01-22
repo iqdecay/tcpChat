@@ -51,3 +51,22 @@ func (c *Client) Publish(subject string, payload []byte) error {
 	return nil
 
 }
+
+// Close terminates a connection to NATS
+func (c *Client) Close() {
+	c.Lock()
+	defer c.Unlock()
+	c.conn.Close()
+}
+
+
+
+func main() {
+
+
+
+
+
+
+
+}
