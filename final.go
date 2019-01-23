@@ -5,12 +5,27 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
+
+type Client struct {
+	name string
+	id   int
+}
+
+func removeTrailingNewline(s string) string {
+	l := len(s)
+	if s[l-1] == '\n' {
+		return s[:l-1]
+	} else {
+		return s
+	}
+}
 
 func main() {
 	clientCount := 0
 	// int serves as unique id
-	allClients := make(map[net.Conn]int)
+	allClients := make(map[net.Conn]Client)
 	// TCP will push new connections to it
 	newConnections := make(chan net.Conn)
 	// We will remove those clients from allClients
@@ -44,19 +59,33 @@ func main() {
 		// Continuously accept new clients
 		case conn := <-newConnections:
 			log.Printf("Accepted new client with id %d", clientCount)
-			allClients[conn] = clientCount
+			allClients[conn] = Client{id: clientCount}
 			clientCount++
 			// Read all incoming messages from this client into a goroutine
 			// and push them to the message chan
 			go func(conn net.Conn) {
-				clientId := allClients[conn]
+				client := allClients[conn]
 				reader := bufio.NewReader(conn)
+				conn.Write([]byte("Welcome to the server ! \n"))
+				conn.Write([]byte("Please enter the pseudo you want to use : "))
+				pseudo, _ := reader.ReadString('\n')
+				pseudo = removeTrailingNewline(pseudo)
+
+				log.Printf("%t", strings.ContainsAny(pseudo, " ,;:?!/"))
+				for strings.ContainsAny(pseudo, " ,;:?/.§%") {
+					conn.Write([]byte(`Pseudo should not contain any of the following characters : " ' ,;:/.?%'`))
+					conn.Write([]byte("\n Please enter a new pseudo : "))
+					pseudo, _ = reader.ReadString('\n')
+					pseudo = removeTrailingNewline(pseudo)
+				}
+				client.name = pseudo
+				reader = bufio.NewReader(conn)
 				for {
 					incoming, err := reader.ReadString('\n')
 					if err != nil {
 						break
 					}
-					messages <- fmt.Sprintf("Client %d > %s", clientId, incoming)
+					messages <- fmt.Sprintf("%s > %s", client.name, incoming)
 				}
 				// When encounter an error, the client will be removed
 				deadConnections <- conn
@@ -80,7 +109,7 @@ func main() {
 
 		//Remove dead clients
 		case conn := <-deadConnections:
-			log.Printf("Client %d disconnected", allClients[conn])
+			log.Printf("Client %d disconnected", allClients[conn].id)
 			delete(allClients, conn)
 		}
 
