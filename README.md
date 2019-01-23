@@ -1,6 +1,6 @@
 # A TCP chat server
 
-##TODO: 
+## TODO :
 - [ ] Check for duplicate pseudo
 - [ ] Add commands like leave, pseudo
 - [ ] Add admin system
