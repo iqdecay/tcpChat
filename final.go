@@ -15,10 +15,15 @@ type Client struct {
 	id   int
 }
 
+type Server struct {
+	allClients map[net.Conn]Client
+	allPseudo  []string
+	totalClients int
+	connectedClients int
+	listener net.Listener
+}
+
 var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
-var allPseudo = []string{""}
-// int serves as unique id
-var allClients = make(map[net.Conn]Client)
 
 func getValidPseudo(conn net.Conn) string {
 	conn.Write([]byte("\n Please enter a new pseudo : "))
@@ -73,7 +78,7 @@ func contains(s interface{}, elem interface{}) bool {
 }
 
 func main() {
-	clientCount := 0
+	server := new(Server)
 	// TCP will push new connections to it
 	newConnections := make(chan net.Conn)
 	// We will remove those clients from allClients
@@ -81,7 +86,8 @@ func main() {
 	// Channel which will contain message from connected clients
 	messages := make(chan string)
 	// Start TCP server
-	server, err := net.Listen("tcp", ":6060")
+	var err error
+	server.listener, err = net.Listen("tcp", ":6060")
 	if err != nil {
 		err = fmt.Errorf("error launching the server : %e", err)
 		fmt.Println(err)
@@ -91,7 +97,7 @@ func main() {
 	// to the dedicated channel
 	go func() {
 		for {
-			conn, err := server.Accept()
+			conn, err := server.listener.Accept()
 			if err != nil {
 				fmt.Println(err)
 			}
