@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strings"
+	"regexp"
 )
 
 type Client struct {
@@ -13,7 +13,9 @@ type Client struct {
 	id   int
 }
 
-func removeTrailingNewline(s string) string {
+var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
+
+func removeNewline(s string) string {
 	l := len(s)
 	if s[l-1] == '\n' {
 		return s[:l-1]
@@ -21,6 +23,17 @@ func removeTrailingNewline(s string) string {
 		return s
 	}
 }
+
+func contains(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+
 
 func main() {
 	clientCount := 0
@@ -35,7 +48,7 @@ func main() {
 	// Start TCP server
 	server, err := net.Listen("tcp", ":6060")
 	if err != nil {
-		err = fmt.Errorf("Error launching the server :", err)
+		err = fmt.Errorf("error launching the server : %e", err)
 		fmt.Println(err)
 	}
 
@@ -53,6 +66,7 @@ func main() {
 	}()
 
 	// Infinite loop
+	var allPseudo []string
 	for {
 		select {
 
@@ -67,17 +81,14 @@ func main() {
 				client := allClients[conn]
 				reader := bufio.NewReader(conn)
 				conn.Write([]byte("Welcome to the server ! \n"))
-				conn.Write([]byte("Please enter the pseudo you want to use : "))
-				pseudo, _ := reader.ReadString('\n')
-				pseudo = removeTrailingNewline(pseudo)
-
-				log.Printf("%t", strings.ContainsAny(pseudo, " ,;:?!/"))
-				for strings.ContainsAny(pseudo, " ,;:?/.§%") {
-					conn.Write([]byte(`Pseudo should not contain any of the following characters : " ' ,;:/.?%'`))
+				pseudo := ""
+				for !validPseudo.MatchString(pseudo) {
+					conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]"))
 					conn.Write([]byte("\n Please enter a new pseudo : "))
 					pseudo, _ = reader.ReadString('\n')
-					pseudo = removeTrailingNewline(pseudo)
+					pseudo = removeNewline(pseudo)
 				}
+
 				client.name = pseudo
 				reader = bufio.NewReader(conn)
 				for {
@@ -112,7 +123,5 @@ func main() {
 			log.Printf("Client %d disconnected", allClients[conn].id)
 			delete(allClients, conn)
 		}
-
 	}
-
 }
