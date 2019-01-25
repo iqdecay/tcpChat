@@ -64,6 +64,7 @@ func find(s interface{}, elem interface{}) int {
 	return -1
 
 }
+
 func contains(s interface{}, elem interface{}) bool {
 	// Return true if elem is in s, false otherwise
 	arrV := reflect.ValueOf(s)
@@ -120,7 +121,6 @@ func main() {
 			// Read all incoming messages from this client into a goroutine
 			// and push them to the message chan
 			go func(conn net.Conn, server *Server) {
-				reader := bufio.NewReader(conn)
 				conn.Write([]byte("Welcome to the server ! \n"))
 				pseudo := getValidPseudo(conn)
 				for contains(server.allPseudo, pseudo) {
