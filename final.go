@@ -33,7 +33,19 @@ func contains(slice []string, s string) bool {
 	return false
 }
 
-
+func getValidPseudo(conn net.Conn) string {
+	conn.Write([]byte("\n Please enter a new pseudo : "))
+	reader := bufio.NewReader(conn)
+	pseudo, _ := reader.ReadString('\n')
+	pseudo = removeNewline(pseudo)
+	for !validPseudo.MatchString(pseudo) {
+		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]"))
+		conn.Write([]byte("Please enter a new pseudo : "))
+		pseudo, _ := reader.ReadString('\n')
+		pseudo = removeNewline(pseudo)
+	}
+	return pseudo
+}
 
 func main() {
 	clientCount := 0
@@ -66,7 +78,7 @@ func main() {
 	}()
 
 	// Infinite loop
-	var allPseudo []string
+	allPseudo := []string{""}
 	for {
 		select {
 
@@ -81,15 +93,14 @@ func main() {
 				client := allClients[conn]
 				reader := bufio.NewReader(conn)
 				conn.Write([]byte("Welcome to the server ! \n"))
-				pseudo := ""
-				for !validPseudo.MatchString(pseudo) {
-					conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]"))
-					conn.Write([]byte("\n Please enter a new pseudo : "))
-					pseudo, _ = reader.ReadString('\n')
-					pseudo = removeNewline(pseudo)
+				pseudo := getValidPseudo(conn)
+				for contains(allPseudo, pseudo) {
+					conn.Write([]byte("Pseudo already in use, please choose a new one"))
+					pseudo = getValidPseudo(conn)
 				}
-
+				conn.Write([]byte(fmt.Sprintf("Your pseudo is now %s \n",pseudo )))
 				client.name = pseudo
+				allPseudo = append(allPseudo, pseudo)
 				reader = bufio.NewReader(conn)
 				for {
 					incoming, err := reader.ReadString('\n')
