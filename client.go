@@ -3,7 +3,10 @@ package main
 import (
 	"fmt"
 	"github.com/marcusolsson/tui-go"
+	"io"
 	"log"
+	"net"
+	"os"
 	"time"
 )
 
@@ -19,15 +22,6 @@ func initializeSidebar() *tui.Box {
 
 func initializeChat() *tui.Box {
 	history := tui.NewVBox()
-
-	for _, m := range posts {
-		history.Append(tui.NewHBox(
-			tui.NewLabel(m.time),
-			tui.NewPadder(1, 0, tui.NewLabel(fmt.Sprintf("<%s>", m.username))),
-			tui.NewLabel(m.message),
-			tui.NewSpacer(),
-		))
-	}
 
 	historyScroll := tui.NewScrollArea(history)
 	historyScroll.SetAutoscrollToBottom(true)
@@ -58,6 +52,12 @@ func initializeChat() *tui.Box {
 	return chat
 }
 
+func mustCopy(dst io.Writer, src io.Reader) {
+	if _, err := io.Copy(dst, src); err != nil {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 	sidebar := initializeSidebar()
 	chat := initializeChat()
@@ -71,8 +71,18 @@ func main() {
 
 	ui.SetKeybinding("Esc", func() { ui.Quit() })
 
-	if err := ui.Run(); err != nil {
-		log.Fatal(err)
+	//if err := ui.Run(); err != nil {
+	//	log.Fatal(err)
+	//}
+	// Initialize connection to chat server
+	conn, err := net.Dial("tcp", ":6060")
+	if err != nil {
+		err = fmt.Errorf("error connecting to server : #{err}")
+		fmt.Println(err)
 	}
+	defer conn.Close()
+	fmt.Println(1)
+	go mustCopy(os.Stdout, conn)
+	mustCopy(conn, os.Stdin)
 
 }
