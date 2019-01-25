@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"regexp"
+	"strings"
 )
 
 type Client struct {
@@ -19,25 +20,16 @@ var allPseudo = []string{""}
 // int serves as unique id
 var allClients = make(map[net.Conn]Client)
 
-func removeNewline(s string) string {
-	l := len(s)
-	if s[l-1] == '\n' {
-		return s[:l-1]
-	} else {
-		return s
-	}
-}
-
 func getValidPseudo(conn net.Conn) string {
 	conn.Write([]byte("\n Please enter a new pseudo : "))
 	reader := bufio.NewReader(conn)
 	pseudo, _ := reader.ReadString('\n')
-	pseudo = removeNewline(pseudo)
+	pseudo = strings.Trim(pseudo, "\n")
 	for !validPseudo.MatchString(pseudo) {
 		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]"))
 		conn.Write([]byte("Please enter a new pseudo : "))
 		pseudo, _ := reader.ReadString('\n')
-		pseudo = removeNewline(pseudo)
+		pseudo = strings.Trim(pseudo,"\n")
 	}
 	return pseudo
 }
