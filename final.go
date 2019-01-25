@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"reflect"
 	"regexp"
 )
 
@@ -14,6 +15,9 @@ type Client struct {
 }
 
 var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
+var allPseudo = []string{""}
+// int serves as unique id
+var allClients = make(map[net.Conn]Client)
 
 func removeNewline(s string) string {
 	l := len(s)
@@ -22,15 +26,6 @@ func removeNewline(s string) string {
 	} else {
 		return s
 	}
-}
-
-func contains(slice []string, s string) bool {
-	for _, v := range slice {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 func getValidPseudo(conn net.Conn) string {
@@ -47,10 +42,46 @@ func getValidPseudo(conn net.Conn) string {
 	return pseudo
 }
 
+func disconnect(conn net.Conn) {
+	client := allClients[conn]
+	pseudo := client.name
+	i := find(allPseudo, pseudo)
+	allPseudo = append(allPseudo[:i],allPseudo[i+1:]...)
+	conn.Close()
+	delete(allClients, conn)
+	log.Printf("Client with pseudo %s disconnected", pseudo)
+}
+
+func find(s interface{}, elem interface{}) int {
+	// Return -1 if elem is in s, its index in s otherwise
+	arrV := reflect.ValueOf(s)
+	if arrV.Kind() == reflect.Slice {
+		for i := 0; i < arrV.Len(); i++ {
+			if arrV.Index(i).Interface() == elem {
+				return i
+			}
+		}
+	}
+	return -1
+
+}
+func contains(s interface{}, elem interface{}) bool {
+	// Return true if elem is in s, false otherwise
+	arrV := reflect.ValueOf(s)
+	if arrV.Kind() == reflect.Slice {
+		for i := 0; i < arrV.Len(); i++ {
+
+			// panics if slice element points to an unexported struct field
+			if arrV.Index(i).Interface() == elem {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func main() {
 	clientCount := 0
-	// int serves as unique id
-	allClients := make(map[net.Conn]Client)
 	// TCP will push new connections to it
 	newConnections := make(chan net.Conn)
 	// We will remove those clients from allClients
@@ -78,19 +109,16 @@ func main() {
 	}()
 
 	// Infinite loop
-	allPseudo := []string{""}
 	for {
 		select {
 
 		// Continuously accept new clients
 		case conn := <-newConnections:
 			log.Printf("Accepted new client with id %d", clientCount)
-			allClients[conn] = Client{id: clientCount}
 			clientCount++
 			// Read all incoming messages from this client into a goroutine
 			// and push them to the message chan
 			go func(conn net.Conn) {
-				client := allClients[conn]
 				reader := bufio.NewReader(conn)
 				conn.Write([]byte("Welcome to the server ! \n"))
 				pseudo := getValidPseudo(conn)
@@ -98,8 +126,9 @@ func main() {
 					conn.Write([]byte("Pseudo already in use, please choose a new one"))
 					pseudo = getValidPseudo(conn)
 				}
-				conn.Write([]byte(fmt.Sprintf("Your pseudo is now %s \n",pseudo )))
-				client.name = pseudo
+				conn.Write([]byte(fmt.Sprintf("Your pseudo is now %s \n", pseudo)))
+				client := Client{pseudo, clientCount}
+				allClients[conn] = client
 				allPseudo = append(allPseudo, pseudo)
 				reader = bufio.NewReader(conn)
 				for {
@@ -131,8 +160,7 @@ func main() {
 
 		//Remove dead clients
 		case conn := <-deadConnections:
-			log.Printf("Client %d disconnected", allClients[conn].id)
-			delete(allClients, conn)
+			disconnect(conn)
 		}
 	}
 }
