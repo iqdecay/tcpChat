@@ -20,9 +20,8 @@ func receiveMessage(conn net.Conn, history *tui.Box) {
 	reader := bufio.NewReader(conn)
 	for {
 		incoming, err := reader.ReadString('\n')
-		fmt.Printf("Message received : %s", incoming)
 		if err != nil {
-			fmt.Println("There is an error")
+			break
 		}
 		history.Append(tui.NewHBox(
 			tui.NewLabel(time.Now().Format("15:04")),
@@ -30,7 +29,6 @@ func receiveMessage(conn net.Conn, history *tui.Box) {
 			tui.NewLabel(incoming),
 			tui.NewSpacer(),
 		))
-
 	}
 
 }
@@ -64,7 +62,9 @@ func main() {
 	input.SetSizePolicy(tui.Expanding, tui.Maximum)
 
 	input.OnSubmit(func(e *tui.Entry) {
-		conn.Write([]byte(e.Text() + "\n"))
+		if e.Text() != "" {
+			conn.Write([]byte(e.Text() + "\n"))
+		}
 		input.SetText("")
 	})
 

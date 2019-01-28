@@ -26,13 +26,13 @@ type Server struct {
 var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
 
 func getValidPseudo(conn net.Conn) string {
-	conn.Write([]byte("\n Please enter a new pseudo : "))
+	conn.Write([]byte("\n Please enter a new pseudo : \n"))
 	reader := bufio.NewReader(conn)
 	pseudo, _ := reader.ReadString('\n')
 	pseudo = strings.Trim(pseudo, "\n")
 	for !validPseudo.MatchString(pseudo) {
-		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]"))
-		conn.Write([]byte("Please enter a new pseudo : "))
+		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]\n"))
+		conn.Write([]byte("Please enter a new pseudo : \n"))
 		pseudo, _ := reader.ReadString('\n')
 		pseudo = strings.Trim(pseudo,"\n")
 	}
@@ -78,6 +78,9 @@ func contains(s interface{}, elem interface{}) bool {
 		}
 	}
 	return false
+}
+func handle(datagram string){
+
 }
 
 func main() {
@@ -127,6 +130,7 @@ func main() {
 					conn.Write([]byte("Pseudo already in use, please choose a new one"))
 					pseudo = getValidPseudo(conn)
 				}
+				messages <- fmt.Sprintf("User %s joined the room !\n", pseudo)
 				conn.Write([]byte(fmt.Sprintf("Your pseudo is now %s \n", pseudo)))
 				client := Client{pseudo, server.totalClients}
 				server.allClients[conn] = client

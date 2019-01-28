@@ -8,4 +8,4 @@
 - [ ] Use the tui-go package to have a nice UI
 - [ ] Get the pseudo return 
 - [ ] Print messages in history
-- [ ] Immediately update the sent message
+
