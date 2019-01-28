@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"os"
 	"time"
 )
 
@@ -17,7 +16,7 @@ func mustCopy(dst io.Writer, src io.Reader) {
 	}
 }
 
-func trial(conn net.Conn, h *tui.Box) {
+func receiveMessage(conn net.Conn, history *tui.Box) {
 	reader := bufio.NewReader(conn)
 	for {
 		incoming, err := reader.ReadString('\n')
@@ -25,7 +24,7 @@ func trial(conn net.Conn, h *tui.Box) {
 		if err != nil {
 			fmt.Println("There is an error")
 		}
-		h.Append(tui.NewHBox(
+		history.Append(tui.NewHBox(
 			tui.NewLabel(time.Now().Format("15:04")),
 			tui.NewPadder(1, 0, tui.NewLabel(fmt.Sprintf("<%s>", "john"))),
 			tui.NewLabel(incoming),
@@ -45,6 +44,7 @@ func main() {
 	}
 	defer conn.Close()
 
+	// Initialize UI
 	userList := tui.NewList()
 	sidebar := tui.NewVBox(
 		tui.NewLabel("Users"),
@@ -83,10 +83,8 @@ func main() {
 
 	ui.SetKeybinding("Esc", func() { ui.Quit() })
 
-	go trial(conn, history)
+	go receiveMessage(conn, history)
 	if err := ui.Run(); err != nil {
 		log.Fatal(err)
 	}
-	go mustCopy(os.Stdout, conn)
-	mustCopy(conn, os.Stdin)
 }
