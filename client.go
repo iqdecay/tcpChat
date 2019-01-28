@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"github.com/marcusolsson/tui-go"
 	"io"
@@ -10,17 +11,46 @@ import (
 	"time"
 )
 
-func initializeSidebar() *tui.Box {
+func mustCopy(dst io.Writer, src io.Reader) {
+	if _, err := io.Copy(dst, src); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func trial(conn net.Conn, h *tui.Box) {
+	reader := bufio.NewReader(conn)
+	for {
+		incoming, err := reader.ReadString('\n')
+		fmt.Printf("Message received : %s", incoming)
+		if err != nil {
+			fmt.Println("There is an error")
+		}
+		h.Append(tui.NewHBox(
+			tui.NewLabel(time.Now().Format("15:04")),
+			tui.NewPadder(1, 0, tui.NewLabel(fmt.Sprintf("<%s>", "john"))),
+			tui.NewLabel(incoming),
+			tui.NewSpacer(),
+		))
+
+	}
+
+}
+
+func main() {
+	//Initialize connection to chat server
+	conn, err := net.Dial("tcp", ":6060")
+	if err != nil {
+		err = fmt.Errorf("error connecting to server : #{err}")
+		fmt.Println(err)
+	}
+	defer conn.Close()
+
 	userList := tui.NewList()
 	sidebar := tui.NewVBox(
 		tui.NewLabel("Users"),
 		userList)
-
 	sidebar.SetBorder(true)
-	return sidebar
-}
 
-func initializeChat() *tui.Box {
 	history := tui.NewVBox()
 
 	historyScroll := tui.NewScrollArea(history)
@@ -34,12 +64,7 @@ func initializeChat() *tui.Box {
 	input.SetSizePolicy(tui.Expanding, tui.Maximum)
 
 	input.OnSubmit(func(e *tui.Entry) {
-		history.Append(tui.NewHBox(
-			tui.NewLabel(time.Now().Format("15:04")),
-			tui.NewPadder(1, 0, tui.NewLabel(fmt.Sprintf("<%s>", "john"))),
-			tui.NewLabel(e.Text()),
-			tui.NewSpacer(),
-		))
+		conn.Write([]byte(e.Text() + "\n"))
 		input.SetText("")
 	})
 
@@ -49,19 +74,6 @@ func initializeChat() *tui.Box {
 
 	chat := tui.NewVBox(historyBox, inputBox)
 	chat.SetSizePolicy(tui.Expanding, tui.Expanding)
-	return chat
-}
-
-func mustCopy(dst io.Writer, src io.Reader) {
-	if _, err := io.Copy(dst, src); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func main() {
-	sidebar := initializeSidebar()
-	chat := initializeChat()
-
 	root := tui.NewHBox(sidebar, chat)
 
 	ui, err := tui.New(root)
@@ -71,18 +83,10 @@ func main() {
 
 	ui.SetKeybinding("Esc", func() { ui.Quit() })
 
-	//if err := ui.Run(); err != nil {
-	//	log.Fatal(err)
-	//}
-	// Initialize connection to chat server
-	conn, err := net.Dial("tcp", ":6060")
-	if err != nil {
-		err = fmt.Errorf("error connecting to server : #{err}")
-		fmt.Println(err)
+	go trial(conn, history)
+	if err := ui.Run(); err != nil {
+		log.Fatal(err)
 	}
-	defer conn.Close()
-	fmt.Println(1)
 	go mustCopy(os.Stdout, conn)
 	mustCopy(conn, os.Stdin)
-
 }
