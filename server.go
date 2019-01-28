@@ -132,7 +132,7 @@ func main() {
 				server.allClients[conn] = client
 				server.allPseudo = append(server.allPseudo, pseudo)
 				server.connectedClients++
-				reader = bufio.NewReader(conn)
+				reader := bufio.NewReader(conn)
 				for {
 
 					incoming, err := reader.ReadString('\n')
