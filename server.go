@@ -26,7 +26,8 @@ type Server struct {
 var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
 
 func getValidPseudo(conn net.Conn) string {
-	conn.Write([]byte("\n Please enter a new pseudo : \n"))
+	// Ask the client for a pseudo until it has correct format
+	conn.Write([]byte("Please enter a new pseudo : \n"))
 	reader := bufio.NewReader(conn)
 	pseudo, _ := reader.ReadString('\n')
 	pseudo = strings.Trim(pseudo, "\n")
@@ -40,6 +41,7 @@ func getValidPseudo(conn net.Conn) string {
 }
 
 func disconnect(conn net.Conn, server *Server) {
+	// Properly close the connection and delete the client from the server
 	client := server.allClients[conn]
 	pseudo := client.name
 	i := find(server.allPseudo, pseudo)
@@ -79,9 +81,6 @@ func contains(s interface{}, elem interface{}) bool {
 	}
 	return false
 }
-func handle(datagram string){
-
-}
 
 func main() {
 	server := new(Server)
@@ -113,7 +112,6 @@ func main() {
 
 	}()
 
-	// Infinite loop
 	for {
 		select {
 
@@ -125,6 +123,7 @@ func main() {
 			// and push them to the message chan
 			go func(conn net.Conn, server *Server) {
 				conn.Write([]byte("Welcome to the server ! \n"))
+				// Pseudo should respect the regex and be free
 				pseudo := getValidPseudo(conn)
 				for contains(server.allPseudo, pseudo) {
 					conn.Write([]byte("Pseudo already in use, please choose a new one"))
