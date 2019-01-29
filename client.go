@@ -24,17 +24,15 @@ func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 
 func layout(g *gocui.Gui) error {
 	maxX, maxY := g.Size()
+	// Panel presenting connected users on the left
 	if v, err := g.SetView("users", 0, 0, maxX/4, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
 		}
 		v.Title = "Users"
-		fmt.Println("")
-		fmt.Println(" victor")
-		fmt.Println(" jean")
-		fmt.Println(" mano")
+		v.Write([]byte("victor"))
 	}
-
+	// The chat history up to the connection of the user
 	if v, err := g.SetView("chat", maxX/4+1, 0, maxX-1, 3*maxY/4-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
