@@ -6,7 +6,6 @@ import (
 	"github.com/jroimartin/gocui"
 	"io"
 	"net"
-	"time"
 )
 
 func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
@@ -68,7 +67,6 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 }
 
 func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
-	message = append([]byte(time.Now().Format("15:04")+">"), message...)
 	originalView := g.CurrentView()
 	g.SetCurrentView(viewName)
 	v := g.CurrentView()
@@ -131,7 +129,6 @@ func main() {
 			}
 			if n != 0 {
 				conn.Write(b)
-				displayMessage(g, "chat", b)
 			}
 			v = g.CurrentView()
 			v.Clear()
