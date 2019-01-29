@@ -6,9 +6,10 @@
 - [x] gocui package to have a nicer UI
 - [x] Modify receiveMessage
 - [x] Autorefresh messages
-- [ ] Scrollable history
+- [x] Scrollable history
+- [x] Merge client and UI
+- [ ] Don't display sent messages twice
 - [ ] Display the users
-- [ ] Merge client and UI
 - [ ] Get pseudo before connecting
 - [ ] Add commands like leave, pseudo
 
