@@ -9,10 +9,17 @@ import (
 	"time"
 )
 
-var keystrokes = make(chan gocui.Key)
-
 func editor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
-	keystrokes <- key
+	switch {
+	case key == gocui.KeyArrowUp:
+		v.MoveCursor(0, -1, false)
+	case key == gocui.KeyArrowDown:
+		v.MoveCursor(0, 1, false)
+	case key == gocui.KeyArrowLeft:
+		v.MoveCursor(-1, 0, false)
+	case key == gocui.KeyArrowRight:
+		v.MoveCursor(1, 0, false)
+	}
 }
 
 func layout(g *gocui.Gui) error {
@@ -38,6 +45,8 @@ func layout(g *gocui.Gui) error {
 		v.Title = "Chat"
 		v.Autoscroll = true
 		v.Overwrite = false
+		v.Editor = gocui.EditorFunc(editor)
+		v.Editable = true
 		v.Wrap = true
 
 	}
@@ -91,6 +100,10 @@ func receiveMessage(conn net.Conn, g *gocui.Gui) {
 	}
 
 }
+
+func update(g *gocui.Gui) error {
+	return nil
+}
 func main() {
 	//Initialize connection to chat server
 	conn, err := net.Dial("tcp", ":6060")
@@ -118,8 +131,10 @@ func main() {
 			if err != nil && err != io.EOF {
 				return err
 			}
-			conn.Write(b)
-			displayMessage(g, "chat", b)
+			if n != 0 {
+				conn.Write(b)
+				displayMessage(g, "chat", b)
+			}
 			v = g.CurrentView()
 			v.Clear()
 			x0, y0 := v.Origin()
@@ -131,12 +146,19 @@ func main() {
 		}); err != nil {
 		panic(err)
 	}
+	if err := g.SetKeybinding("chat", gocui.KeyEnter, gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			g.SetCurrentView("input")
+			g.Update(update)
+			return nil
+		}); err != nil {
+		panic(err)
+	}
 
 	if err := g.SetKeybinding("input", gocui.KeyArrowUp, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			g.SetCurrentView("chat")
 			v, _ = g.View("chat")
-
 			return nil
 		}); err != nil {
 		panic(err)
