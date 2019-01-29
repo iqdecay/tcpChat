@@ -4,17 +4,11 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/marcusolsson/tui-go"
-	"io"
 	"log"
 	"net"
 	"time"
 )
 
-func mustCopy(dst io.Writer, src io.Reader) {
-	if _, err := io.Copy(dst, src); err != nil {
-		log.Fatal(err)
-	}
-}
 
 func receiveMessage(conn net.Conn, history *tui.Box) {
 	reader := bufio.NewReader(conn)
