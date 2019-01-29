@@ -67,7 +67,9 @@ func main() {
 	if err := g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			b := make([]byte, 100)
-			_, err := v.Read(b)
+			n, err := v.Read(b)
+			b = b[:n]
+
 			fmt.Println("\n", string(b))
 			if err != nil && err != io.EOF {
 				return err
