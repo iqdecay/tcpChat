@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/jroimartin/gocui"
 	"io"
+	"time"
 )
 
 func layout(g *gocui.Gui) error {
@@ -48,6 +49,16 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
+func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
+	message = append([]byte(time.Now().Format("15:04")+">"), message...)
+	originalView := g.CurrentView()
+	g.SetCurrentView(viewName)
+	v := g.CurrentView()
+	v.Write(message)
+	g.SetCurrentView(originalView.Name())
+	return nil
+}
+
 func initKeyBindings(g *gocui.Gui) error {
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		return err
@@ -66,18 +77,15 @@ func main() {
 	initKeyBindings(g)
 	if err := g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			b := make([]byte, 100)
+			b := make([]byte, len(v.Buffer()))
 			n, err := v.Read(b)
-			b = b[:n]
-
-			fmt.Println("\n", string(b))
+			if n != len(v.Buffer()) {
+				return fmt.Errorf("mismatch between buffer length and bytes read")
+			}
 			if err != nil && err != io.EOF {
 				return err
 			}
-			g.SetCurrentView("chat")
-			v = g.CurrentView()
-			v.Write(b)
-			g.SetCurrentView("input")
+			displayMessage(g, "chat", b)
 			v = g.CurrentView()
 			v.Clear()
 			x0, y0 := v.Origin()
