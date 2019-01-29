@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func editor(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 	switch {
 	case key == gocui.KeyArrowUp:
 		v.MoveCursor(0, -1, false)
@@ -45,7 +45,7 @@ func layout(g *gocui.Gui) error {
 		v.Title = "Chat"
 		v.Autoscroll = true
 		v.Overwrite = false
-		v.Editor = gocui.EditorFunc(editor)
+		v.Editor = gocui.EditorFunc(navigator)
 		v.Editable = true
 		v.Wrap = true
 
@@ -118,7 +118,7 @@ func main() {
 	}
 	defer g.Close()
 	g.Cursor = true
-	g.Mouse = true
+	g.Mouse = false
 	g.SetManagerFunc(layout)
 	initKeyBindings(g)
 	if err := g.SetKeybinding("input", gocui.KeyEnter, gocui.ModNone,
@@ -148,6 +148,7 @@ func main() {
 	}
 	if err := g.SetKeybinding("chat", gocui.KeyEnter, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
+			v.Autoscroll = true
 			g.SetCurrentView("input")
 			g.Update(update)
 			return nil
@@ -159,6 +160,8 @@ func main() {
 		func(g *gocui.Gui, v *gocui.View) error {
 			g.SetCurrentView("chat")
 			v, _ = g.View("chat")
+			v.Autoscroll = false
+			g.Update(update)
 			return nil
 		}); err != nil {
 		panic(err)
