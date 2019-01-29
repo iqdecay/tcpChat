@@ -16,26 +16,28 @@ type Client struct {
 }
 
 type Server struct {
-	allClients map[net.Conn]Client
-	allPseudo  []string
-	totalClients int
+	allClients       map[net.Conn]Client
+	allPseudo        []string
+	totalClients     int
 	connectedClients int
-	listener net.Listener
+	listener         net.Listener
 }
 
 var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
 
 func getValidPseudo(conn net.Conn) string {
-	// Ask the client for a pseudo until it has correct format
+	// Get pseudo from client
 	conn.Write([]byte("Please enter a new pseudo : \n"))
 	reader := bufio.NewReader(conn)
 	pseudo, _ := reader.ReadString('\n')
 	pseudo = strings.Trim(pseudo, "\n")
+
+	// Until it has correct format
 	for !validPseudo.MatchString(pseudo) {
 		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]\n"))
 		conn.Write([]byte("Please enter a new pseudo : \n"))
 		pseudo, _ := reader.ReadString('\n')
-		pseudo = strings.Trim(pseudo,"\n")
+		pseudo = strings.Trim(pseudo, "\n")
 	}
 	return pseudo
 }
@@ -45,7 +47,7 @@ func disconnect(conn net.Conn, server *Server) {
 	client := server.allClients[conn]
 	pseudo := client.name
 	i := find(server.allPseudo, pseudo)
-	server.allPseudo = append(server.allPseudo[:i],server.allPseudo[i+1:]...)
+	server.allPseudo = append(server.allPseudo[:i], server.allPseudo[i+1:]...)
 	server.connectedClients--
 	conn.Close()
 	delete(server.allClients, conn)
@@ -83,15 +85,19 @@ func contains(s interface{}, elem interface{}) bool {
 }
 
 func main() {
+	// Initialization
+
 	server := new(Server)
 	server.allClients = make(map[net.Conn]Client)
-	// TCP will push new connections to it
+	// Server will push new connections to it
 	newConnections := make(chan net.Conn)
-	// We will remove those clients from allClients
+	// Clients that will be remove from allClients
 	deadConnections := make(chan net.Conn)
-	// Channel which will contain message from connected clients
+	// Receives messages from connected clients
 	messages := make(chan string)
+
 	// Start TCP server
+
 	var err error
 	server.listener, err = net.Listen("tcp", ":6060")
 	if err != nil {
@@ -99,8 +105,7 @@ func main() {
 		fmt.Println(err)
 	}
 
-	// Server accepts connections forever and pushes new ones
-	// to the dedicated channel
+	// Server accepts connections forever and pushes new ones to the channel
 	go func() {
 		for {
 			conn, err := server.listener.Accept()
@@ -109,7 +114,6 @@ func main() {
 			}
 			newConnections <- conn
 		}
-
 	}()
 
 	for {
@@ -119,39 +123,48 @@ func main() {
 		case conn := <-newConnections:
 			server.totalClients++
 			log.Printf("Accepted new client with id %d", server.totalClients)
-			// Read all incoming messages from this client into a goroutine
-			// and push them to the message chan
+
+			// Read all incoming messages from this client and push them to the chan
 			go func(conn net.Conn, server *Server) {
 				conn.Write([]byte("Welcome to the server ! \n"))
-				// Pseudo should respect the regex and be free
+
+				// Get a pseudo in valid format
 				pseudo := getValidPseudo(conn)
+				// Get a pseudo not used
 				for contains(server.allPseudo, pseudo) {
 					conn.Write([]byte("Pseudo already in use, please choose a new one"))
 					pseudo = getValidPseudo(conn)
 				}
+
 				messages <- fmt.Sprintf("User %s joined the room !\n", pseudo)
 				conn.Write([]byte(fmt.Sprintf("Your pseudo is now %s \n", pseudo)))
+
+				// Add client to server
 				client := Client{pseudo, server.totalClients}
 				server.allClients[conn] = client
 				server.allPseudo = append(server.allPseudo, pseudo)
 				server.connectedClients++
 				reader := bufio.NewReader(conn)
-				for {
 
+				// Read all his incoming messages
+				for {
 					incoming, err := reader.ReadString('\n')
 					if err != nil {
 						break
 					}
 					messages <- fmt.Sprintf("%s > %s", client.name, incoming)
 				}
-				// When encounter an error, the client will be removed
-				deadConnections <- conn
 
+				// If there was an error, we delete the client
+				deadConnections <- conn
 			}(conn, server)
 
 
 		// Continuously read incoming messages and broadcast them
 		case message := <-messages:
+			log.Printf("New message : %s", message)
+
+			// Send the message to all connected clients
 			for conn := range server.allClients {
 				//Send the message in a go routine
 				go func(conn net.Conn, message string) {
@@ -162,7 +175,6 @@ func main() {
 					}
 				}(conn, message)
 			}
-			log.Printf("New message : %s", message)
 
 		//Remove dead clients
 		case conn := <-deadConnections:
