@@ -1,11 +1,16 @@
 # A TCP chat server
 
 ## TODO :
-- [x] Check for duplicate pseudo
+### Client :
+- [x] Print messages in history
+- [x] Use the gocui package to have a nicer UI
+- [ ] Get pseudo before connecting
 - [ ] Add commands like leave, pseudo
-- [ ] Add admin system
+
+### Server : 
+- [x] Check for duplicate pseudo
 - [x] Use regexp package to check the pseudo
-- [ ] Use the tui-go package to have a nice UI
-- [ ] Get the pseudo return 
-- [ ] Print messages in history
+- [ ] Send user list
+- [ ] Attach pseudo to each message
+- [ ] Add admin system
 
