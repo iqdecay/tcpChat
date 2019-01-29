@@ -3,7 +3,11 @@
 ## TODO :
 ### Client :
 - [x] Print messages in history
-- [x] Use the gocui package to have a nicer UI
+- [x] gocui package to have a nicer UI
+- [x] Modify receiveMessage
+- [x] Autorefresh messages
+- [ ] Scrollable history
+- [ ] Display the users
 - [ ] Merge client and UI
 - [ ] Get pseudo before connecting
 - [ ] Add commands like leave, pseudo
