@@ -76,9 +76,32 @@ func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
 }
 
 func initKeyBindings(g *gocui.Gui) error {
+
+	if err := g.SetKeybinding("chat", gocui.KeyEnter, gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			v.Autoscroll = true
+			g.SetCurrentView("input")
+			g.Update(update)
+			return nil
+		}); err != nil {
+		return err
+	}
+
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		return err
 	}
+
+	if err := g.SetKeybinding("input", gocui.KeyArrowUp, gocui.ModNone,
+		func(g *gocui.Gui, v *gocui.View) error {
+			g.SetCurrentView("chat")
+			v, _ = g.View("chat")
+			v.Autoscroll = false
+			g.Update(update)
+			return nil
+		}); err != nil {
+		return err
+	}
+
 	return nil
 }
 func receiveMessage(conn net.Conn, g *gocui.Gui) {
@@ -107,6 +130,7 @@ func main() {
 		err = fmt.Errorf("error connecting to server : #{err}")
 		fmt.Println(err)
 	}
+	reader := new(bufio.Reader)
 	defer conn.Close()
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
@@ -141,28 +165,9 @@ func main() {
 		}); err != nil {
 		panic(err)
 	}
-	if err := g.SetKeybinding("chat", gocui.KeyEnter, gocui.ModNone,
-		func(g *gocui.Gui, v *gocui.View) error {
-			v.Autoscroll = true
-			g.SetCurrentView("input")
-			g.Update(update)
-			return nil
-		}); err != nil {
-		panic(err)
-	}
-
-	if err := g.SetKeybinding("input", gocui.KeyArrowUp, gocui.ModNone,
-		func(g *gocui.Gui, v *gocui.View) error {
-			g.SetCurrentView("chat")
-			v, _ = g.View("chat")
-			v.Autoscroll = false
-			g.Update(update)
-			return nil
-		}); err != nil {
-		panic(err)
-	}
 
 	go receiveMessage(conn, g)
+
 	if err := g.MainLoop(); err != nil && err != gocui.ErrQuit {
 		panic(err)
 	}
