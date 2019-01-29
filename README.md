@@ -8,7 +8,7 @@
 - [x] Autorefresh messages
 - [x] Scrollable history
 - [x] Merge client and UI
-- [ ] Don't display sent messages twice
+- [x] Don't display sent messages twice
 - [ ] Display the users
 - [ ] Get pseudo before connecting
 - [ ] Add commands like leave, pseudo
