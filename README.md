@@ -1,5 +1,15 @@
 # A TCP chat server
 
+## Usage :
+
+First install dependencies : 
+    `go get github.com/jroimartin/gocui`
+Then launch the server :
+    `go run server.go`                
+And for each client : 
+    `go run client.go`
+
+
 ## TODO :
 ### Client :
 - [x] Print messages in history
