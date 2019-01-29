@@ -9,6 +9,7 @@ import (
 )
 
 func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
+	// Rules for navigating the chat history
 	switch {
 	case key == gocui.KeyArrowUp:
 		v.MoveCursor(0, -1, false)
@@ -22,6 +23,7 @@ func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
 }
 
 func layout(g *gocui.Gui) error {
+	// Generate the UI and its rules
 	maxX, maxY := g.Size()
 	// Panel presenting connected users on the left
 	if v, err := g.SetView("users", 0, 0, maxX/4, maxY-1); err != nil {
@@ -31,7 +33,7 @@ func layout(g *gocui.Gui) error {
 		v.Title = "Users"
 		v.Write([]byte("victor"))
 	}
-	// The chat history up to the connection of the user
+	// The chat history
 	if v, err := g.SetView("chat", maxX/4+1, 0, maxX-1, 3*maxY/4-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
@@ -42,12 +44,14 @@ func layout(g *gocui.Gui) error {
 		v.Title = "Chat"
 		v.Autoscroll = true
 		v.Overwrite = false
+		// We use the navigator as an editor, but the text displayed will not change
 		v.Editor = gocui.EditorFunc(navigator)
 		v.Editable = true
 		v.Wrap = true
 
 	}
 
+	// The input box
 	if v, err := g.SetView("input", maxX/4+1, 3*maxY/4, maxX-1, maxY-1); err != nil {
 		if err != gocui.ErrUnknownView {
 			return err
@@ -58,6 +62,7 @@ func layout(g *gocui.Gui) error {
 		v.Editable = true
 		v.Wrap = true
 	}
+	// No error occured during any initialization
 	return nil
 
 }
@@ -76,26 +81,32 @@ func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
 }
 
 func initKeyBindings(g *gocui.Gui) error {
+	// Initialize the keybindings that depend only on the gui
 
+	// When in chat history, ENTER puts you back in the input box,
+	// where you left of
 	if err := g.SetKeybinding("chat", gocui.KeyEnter, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
-			v.Autoscroll = true
-			g.SetCurrentView("input")
+			v.Autoscroll = true       // Show the latest messages
+			g.SetCurrentView("input") // Get back to input box
 			g.Update(update)
 			return nil
 		}); err != nil {
 		return err
 	}
 
+	// Ctrl-C leaves the application, whatever the focused view
 	if err := g.SetKeybinding("", gocui.KeyCtrlC, gocui.ModNone, quit); err != nil {
 		return err
 	}
 
+	// When in input box, ArrowUp puts you in chat history so you can navigate
+	// all the history
 	if err := g.SetKeybinding("input", gocui.KeyArrowUp, gocui.ModNone,
 		func(g *gocui.Gui, v *gocui.View) error {
 			g.SetCurrentView("chat")
 			v, _ = g.View("chat")
-			v.Autoscroll = false
+			v.Autoscroll = false // Earlier messages can be displayed
 			g.Update(update)
 			return nil
 		}); err != nil {
@@ -130,7 +141,6 @@ func main() {
 		err = fmt.Errorf("error connecting to server : #{err}")
 		fmt.Println(err)
 	}
-	reader := new(bufio.Reader)
 	defer conn.Close()
 	g, err := gocui.NewGui(gocui.OutputNormal)
 	if err != nil {
