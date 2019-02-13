@@ -26,7 +26,7 @@ type Server struct {
 	listener         net.Listener
 }
 
-var validPseudo = regexp.MustCompile("([A-Z]|[a-z]|[0-9]){4,12}")
+var validPseudo = regexp.MustCompile("^([A-Z]|[a-z]|[0-9]){4,12}$")
 
 func getValidPseudo(conn net.Conn) string {
 	// Get pseudo from client
