@@ -26,7 +26,7 @@ type Server struct {
 	listener         net.Listener
 }
 
-var validPseudo = regexp.MustCompile(`([A-Z]|[a-z]|[0-9]){4,12}`)
+var validPseudo = regexp.MustCompile("([A-Z]|[a-z]|[0-9]){4,12}")
 
 func getValidPseudo(conn net.Conn) string {
 	// Get pseudo from client
@@ -41,6 +41,7 @@ func getValidPseudo(conn net.Conn) string {
 		conn.Write([]byte("Please enter a new pseudo : \n"))
 		pseudo, _ := reader.ReadString('\n')
 		pseudo = strings.Trim(pseudo, "\n")
+		log.Printf("pseudo entered : %s|||", pseudo)
 	}
 	return pseudo
 }
@@ -132,6 +133,7 @@ func main() {
 			for _, pseudo := range userList {
 				b.WriteString(pseudo + ",")
 			}
+			b.WriteString("\n")
 			userListMessage := b.String()
 			messages <- userListMessage
 		}
