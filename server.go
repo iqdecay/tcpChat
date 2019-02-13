@@ -15,6 +15,9 @@ type Client struct {
 	id   int
 }
 
+// Hold the user list
+var users = make(chan []string)
+
 type Server struct {
 	allClients       map[net.Conn]Client
 	allPseudo        []string
@@ -48,6 +51,7 @@ func disconnect(conn net.Conn, server *Server) {
 	pseudo := client.name
 	i := find(server.allPseudo, pseudo)
 	server.allPseudo = append(server.allPseudo[:i], server.allPseudo[i+1:]...)
+	users <- server.allPseudo
 	server.connectedClients--
 	conn.Close()
 	delete(server.allClients, conn)
@@ -116,6 +120,23 @@ func main() {
 		}
 	}()
 
+	// Send the user list everytime it is modified
+	go func() {
+		// A user-list datagram will start with "##", which means
+		// it is not a classic message since pseudos are alphanumerical
+		var b strings.Builder
+		for {
+			b.Reset()
+			b.WriteString("##")
+			userList := <-users
+			for _, pseudo := range userList {
+				b.WriteString(pseudo + ",")
+			}
+			userListMessage := b.String()
+			messages <- userListMessage
+		}
+	}()
+
 	for {
 		select {
 
@@ -143,6 +164,7 @@ func main() {
 				client := Client{pseudo, server.totalClients}
 				server.allClients[conn] = client
 				server.allPseudo = append(server.allPseudo, pseudo)
+				users <- server.allPseudo
 				server.connectedClients++
 				reader := bufio.NewReader(conn)
 
