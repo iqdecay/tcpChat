@@ -6,6 +6,7 @@ import (
 	"github.com/jroimartin/gocui"
 	"io"
 	"net"
+	"strings"
 )
 
 func navigator(v *gocui.View, key gocui.Key, ch rune, mod gocui.Modifier) {
@@ -31,7 +32,6 @@ func layout(g *gocui.Gui) error {
 			return err
 		}
 		v.Title = "Users"
-		v.Write([]byte("victor"))
 	}
 	// The chat history
 	if v, err := g.SetView("chat", maxX/4+1, 0, maxX-1, 3*maxY/4-1); err != nil {
@@ -80,6 +80,35 @@ func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
 	return nil
 }
 
+func extractUserList(s string) []string {
+	// From a string containing comma-separated alphanumerical pseudos,
+	// return a list of said pseudos
+	var users []string
+	var user strings.Builder
+	s = s[2 : len(s)-1] // remove the leading ## and trailing newline
+	for _, char := range s {
+		if char != rune(',') {
+			user.WriteRune(char)
+		} else {
+			users = append(users, user.String())
+			user.Reset()
+		}
+	}
+	return users
+}
+
+func displayUserList(g *gocui.Gui, userList string) error {
+	originalView := g.CurrentView()
+	users := extractUserList(userList)
+	g.SetCurrentView("users")
+	v := g.CurrentView()
+	for _, pseudo := range users {
+		v.Write([]byte(pseudo + "\n"))
+	}
+	g.SetCurrentView(originalView.Name())
+	return nil
+}
+
 func initKeyBindings(g *gocui.Gui) error {
 	// Initialize the keybindings that depend only on the gui
 
@@ -115,6 +144,8 @@ func initKeyBindings(g *gocui.Gui) error {
 
 	return nil
 }
+
+var c int
 func receiveMessage(conn net.Conn, g *gocui.Gui) {
 	reader := bufio.NewReader(conn)
 	for {
@@ -122,11 +153,18 @@ func receiveMessage(conn net.Conn, g *gocui.Gui) {
 		if err != nil {
 			break
 		}
-		message := []byte(incoming)
-		displayMessage(g, "chat", message)
-		g.Update(func(g *gocui.Gui) error {
-			return nil
-		})
+		// if the message is the userList
+		//if incoming[0:2] == "##" {
+		//	fmt.Println(c)
+		//	displayUserList(g, incoming)
+		//	g.Update(update)
+		//	c++
+		//	return
+		//} else {
+			message := []byte(incoming)
+			displayMessage(g, "chat", message)
+			g.Update(update)
+		//}
 	}
 
 }
