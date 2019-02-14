@@ -39,9 +39,8 @@ func getValidPseudo(conn net.Conn) string {
 	for !validPseudo.MatchString(pseudo) {
 		conn.Write([]byte("Pseudo are alphanumerical and of length in [4,12]\n"))
 		conn.Write([]byte("Please enter a new pseudo : \n"))
-		pseudo, _ := reader.ReadString('\n')
+		pseudo, _ = reader.ReadString('\n')
 		pseudo = strings.Trim(pseudo, "\n")
-		log.Printf("pseudo entered : %s|||", pseudo)
 	}
 	return pseudo
 }
