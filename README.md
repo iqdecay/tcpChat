@@ -19,7 +19,7 @@
 - [x] Scrollable history
 - [x] Merge client and UI
 - [x] Don't display sent messages twice
-- [ ] Fix infinite invalid pseudo loop
+- [x] Fix infinite invalid pseudo loop
 - [ ] Display the users
 - [ ] Get pseudo before connecting
 - [ ] Add commands like leave, pseudo
