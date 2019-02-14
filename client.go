@@ -71,11 +71,19 @@ func quit(g *gocui.Gui, v *gocui.View) error {
 	return gocui.ErrQuit
 }
 
-func displayMessage(g *gocui.Gui, viewName string, message []byte) error {
+func update(g *gocui.Gui) error {
+	return nil
+}
+
+func displayMessage(g *gocui.Gui, viewName string, message string) error {
+	if message[len(message)-1:] != "\n" {
+		message = message + "\n"
+	}
+	byteMessage := []byte(message)
 	originalView := g.CurrentView()
 	g.SetCurrentView(viewName)
 	v := g.CurrentView()
-	v.Write(message)
+	v.Write(byteMessage)
 	g.SetCurrentView(originalView.Name())
 	return nil
 }
@@ -102,6 +110,7 @@ func displayUserList(g *gocui.Gui, userList string) error {
 	users := extractUserList(userList)
 	g.SetCurrentView("users")
 	v := g.CurrentView()
+	v.Clear() // Remove the old userlist
 	for _, pseudo := range users {
 		v.Write([]byte(pseudo + "\n"))
 	}
@@ -153,25 +162,18 @@ func receiveMessage(conn net.Conn, g *gocui.Gui) {
 		if err != nil {
 			break
 		}
-		// if the message is the userList
-		//if incoming[0:2] == "##" {
-		//	fmt.Println(c)
-		//	displayUserList(g, incoming)
-		//	g.Update(update)
-		//	c++
-		//	return
-		//} else {
-			message := []byte(incoming)
-			displayMessage(g, "chat", message)
-			g.Update(update)
-		//}
+		//if the message is the userList
+		if incoming[0:2] == "##" {
+			fmt.Println(c)
+			displayUserList(g, incoming)
+		} else {
+			displayMessage(g, "chat", incoming)
+		}
+		g.Update(update)
 	}
 
 }
 
-func update(g *gocui.Gui) error {
-	return nil
-}
 func main() {
 	//Initialize connection to chat server
 	conn, err := net.Dial("tcp", ":6060")
